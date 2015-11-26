@@ -3,7 +3,7 @@ if myHero.charName ~= "Illaoi" then return end
 require 'VPrediction'
 
 
-local version = .01
+local version = .02
 local SCRIPT_NAME = "Illoye"
 
 
