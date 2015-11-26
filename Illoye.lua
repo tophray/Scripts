@@ -17,10 +17,18 @@ local menu
 local VP = nil
 local Qrange, Wrange, Erange, Rrange = 800, 1, 900, 450
 local Qready, Wready, Eready, Rready = false
+local enemyhero = {}
 
+
+if myHero == nil then myHero = GetMyHero() end
 
 function OnLoad()
-   
+    for i = 1, heroManager.iCount, 1 do
+	local hero = heroManager:getHero(i)
+   if hero ~= nil and hero.team ~= myHero.team then
+          enemyhero[i] = hero.name
+    end
+   end
     jungleMinions = minionManager(MINION_JUNGLE, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
     EnemyMinions = minionManager(MINION_ENEMY, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
     print("<font color=\"#f44d5e\"><b>" .."-- Illoye has been loaded --")
@@ -62,6 +70,7 @@ function OnLoad()
       menu.extra:addParam("Qrange", "Q Range Slider", SCRIPT_PARAM_SLICE, 800, 1, 800, 0)
 	  menu.extra:addParam("Erange", "E Range Slider", SCRIPT_PARAM_SLICE, 900, 1, 900, 0)
       menu.extra:addParam("ultset", "Use Ult in Combo", SCRIPT_PARAM_ONOFF, true) 
+	  menu.extra:addParam("vesfocus", "Focus Vessel", SCRIPT_PARAM_ONOFF, true) 
       menu.extra:addParam("numchamps", "Cast When _ Champs", SCRIPT_PARAM_SLICE, 2, 0, 5, 0) 
      
     
@@ -77,10 +86,15 @@ end
 
 function OnTick()
     ts:update()
-    target = ts.target
-    EnemyMinions:update()
+	if vesobj then
+		target = vesobj
+	else
+		target = ts.target
+	end
+	EnemyMinions:update()
     jungleMinions:update()
-    
+	
+
     
    
     
@@ -189,6 +203,10 @@ function AutoHarass()
      end
 end
 function Combo2()
+
+
+
+
 	if ValidTarget(target, Erange) and Eready and menu.Combo.useE then
         for i, target in pairs(GetEnemyHeroes()) do
             if menu.extra.prediction then
@@ -204,12 +222,12 @@ function Combo2()
             end
         end
     end
-	if menu.Combo.useW and Wready and CountEnemies(Wrange, myHero) ~= nil and target ~= nil then     
-	   CastSpell(_W, target)
+	if menu.Combo.useW and Wready and target ~= nil then     
+	   CastSpell(_W)
 		
      end
    if ValidTarget(target, Qrange) and Qready and menu.Combo.useQ then
-        for i, target in pairs(GetEnemyHeroes()) do
+        if target then
             if menu.extra.prediction then
                 local pos, info = VP.GetPrediction(target, menu.extra.Qrange, 1500, 0.5, 75)
                 if pos and info.hitchance >= 2 and GetDistance(pos) < Qrange then
@@ -230,9 +248,46 @@ if menu.extra.ultset and Rready and CountEnemies(Rrange, myHero) >= menu.extra.n
 	end
 end	
 
+function isSpirit(vesname)
+ if vesname ~= nil then
+  for i = 1, 11 do
+   if i == 11 and enemyhero[i] == nil then
+    return false
+   elseif vesname == enemyhero[i] then
+    return true
+   end
+  end
+ else
+  return false
+ end
+end
+
+function OnCreateObj(obj)
+if obj and string.match(obj.name, ".troy") == nil and isSpirit(obj.name) then
+ vesobj = obj
+ elseif obj and (obj.name == 'Illaoi_Base_E_SpiritReturn.troy' or obj.name == 'Illaoi_Base_E_SpiritTimerShatter.troy') then
+  
+  vesobj = nil
+ 
+ end
+ 
+end
+
+function OnUpdateBuff(unit, buff, stacks)
+    if buff.name == 'illaoiespirit' then  
+        if unit then
+   print(obj.name)
+end
+    end
+end
+
+-- Vessel = illaoiespirit
+
+
 function Combo()
+
     if ValidTarget(target, Qrange) and Qready and menu.Combo.useQ then
-        for i, target in pairs(GetEnemyHeroes()) do
+        if target then
             if menu.extra.prediction then
                 local pos, info = VP.GetPrediction(target, menu.extra.Qrange, 1500, 0.5, 75)
                 if pos and info.hitchance >= 2 and GetDistance(pos) < Qrange then
@@ -247,8 +302,8 @@ function Combo()
         end
     end
     
-	if menu.Combo.useW and Wready and CountEnemies(Wrange, myHero) ~= nil and target ~= nil then     
-	   CastSpell(_W, target)
+	if menu.Combo.useW and Wready and target ~= nil then     
+	   CastSpell(_W)
 		
      end
   
@@ -355,6 +410,10 @@ end
 
 function OnDraw()
   if myHero.dead then return end
+
+ if target then
+	DrawCircle(target.x, target.y, target.z, 315, ARGB(100, 250, 0, 250))
+  end
   
   if menu.drawings.drawCircleAA then
     DrawCircle(myHero.x, myHero.y, myHero.z, 125, ARGB(255, 0, 255, 0))
